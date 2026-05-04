@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1777649694065,
+      "tag": "0000_gorgeous_mister_fear",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1777649793778,
+      "tag": "0001_bumpy_gladiator",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1777649903716,
+      "tag": "0002_wakeful_medusa",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1777649945105,
+      "tag": "0003_flimsy_red_hulk",
+      "breakpoints": true
+    }
+  ]
+}

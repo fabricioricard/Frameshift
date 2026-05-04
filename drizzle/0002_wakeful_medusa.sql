@@ -1,0 +1,1 @@
+ALTER TABLE `likes` ADD CONSTRAINT `unique_video_user_like` UNIQUE(`videoId`,`userId`);
