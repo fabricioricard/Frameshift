@@ -34,10 +34,12 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-700">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Radio className="w-8 h-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-white">Frameshift</h1>
-          </div>
+          <Link href="/">
+            <div className="flex items-center gap-2 cursor-pointer">
+              <Radio className="w-8 h-8 text-red-500" />
+              <h1 className="text-2xl font-bold text-white">Frameshift</h1>
+            </div>
+          </Link>
 
           <form onSubmit={handleSearch} className="flex-1 max-w-md mx-4">
             <Input
@@ -92,7 +94,6 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Videos Tab */}
           <TabsContent value="feed" className="space-y-6">
             {videos.length === 0 ? (
               <Card className="bg-slate-800 border-slate-700">
@@ -107,11 +108,7 @@ export default function Home() {
                     <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition cursor-pointer h-full">
                       {video.thumbnailUrl && (
                         <div className="relative aspect-video bg-slate-700 overflow-hidden">
-                          <img
-                            src={video.thumbnailUrl}
-                            alt={video.title}
-                            className="w-full h-full object-cover hover:scale-105 transition"
-                          />
+                          <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover hover:scale-105 transition" />
                           <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition">
                             <Play className="w-12 h-12 text-white" />
                           </div>
@@ -119,15 +116,11 @@ export default function Home() {
                       )}
                       <CardHeader>
                         <CardTitle className="text-white line-clamp-2">{video.title}</CardTitle>
-                        <CardDescription className="text-slate-400">
-                          {video.views} visualizações
-                        </CardDescription>
+                        <CardDescription className="text-slate-400">{video.views} visualizações</CardDescription>
                       </CardHeader>
                       {video.description && (
                         <CardContent>
-                          <p className="text-slate-300 text-sm line-clamp-2">
-                            {video.description}
-                          </p>
+                          <p className="text-slate-300 text-sm line-clamp-2">{video.description}</p>
                         </CardContent>
                       )}
                     </Card>
@@ -137,7 +130,6 @@ export default function Home() {
             )}
           </TabsContent>
 
-          {/* Live Streams Tab */}
           <TabsContent value="live" className="space-y-6">
             {liveStreams.length === 0 ? (
               <Card className="bg-slate-800 border-slate-700">
@@ -152,11 +144,7 @@ export default function Home() {
                     <Card className="bg-slate-800 border-slate-700 hover:border-red-600 transition cursor-pointer h-full border-2">
                       {stream.thumbnailUrl && (
                         <div className="relative aspect-video bg-slate-700 overflow-hidden">
-                          <img
-                            src={stream.thumbnailUrl}
-                            alt={stream.title}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={stream.thumbnailUrl} alt={stream.title} className="w-full h-full object-cover" />
                           <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-600 px-2 py-1 rounded">
                             <Radio className="w-3 h-3 text-white animate-pulse" />
                             <span className="text-xs font-bold text-white">AO VIVO</span>
@@ -165,15 +153,11 @@ export default function Home() {
                       )}
                       <CardHeader>
                         <CardTitle className="text-white line-clamp-2">{stream.title}</CardTitle>
-                        <CardDescription className="text-slate-400">
-                          {stream.viewers} espectadores
-                        </CardDescription>
+                        <CardDescription className="text-slate-400">{stream.viewers} espectadores</CardDescription>
                       </CardHeader>
                       {stream.description && (
                         <CardContent>
-                          <p className="text-slate-300 text-sm line-clamp-2">
-                            {stream.description}
-                          </p>
+                          <p className="text-slate-300 text-sm line-clamp-2">{stream.description}</p>
                         </CardContent>
                       )}
                     </Card>
