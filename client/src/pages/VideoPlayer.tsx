@@ -2,7 +2,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/_core/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbsUp, MessageCircle, Share2, ArrowLeft } from "lucide-react";
 import { useParams, useLocation } from "wouter";
@@ -12,47 +11,31 @@ import { toast } from "sonner";
 export default function VideoPlayer() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
   const [commentText, setCommentText] = useState("");
 
   const videoId = parseInt(id || "0");
 
-  // Fetch video
   const videoQuery = trpc.videos.getById.useQuery({ id: videoId });
   const video = videoQuery.data;
 
-  // Fetch comments
   const commentsQuery = trpc.comments.getByVideoId.useQuery({ videoId });
   const comments = commentsQuery.data || [];
 
-  // Fetch like count
   const likeCountQuery = trpc.likes.count.useQuery({ videoId });
   const likeCount = likeCountQuery.data || 0;
 
-  // Check if user liked
-  const hasLikedQuery = trpc.likes.hasLiked.useQuery(
-    { videoId },
-    { enabled: isAuthenticated }
-  );
+  const hasLikedQuery = trpc.likes.hasLiked.useQuery({ videoId }, { enabled: isAuthenticated });
   const hasLiked = hasLikedQuery.data || false;
 
-  // Mutations
   const toggleLikeMutation = trpc.likes.toggle.useMutation({
-    onSuccess: () => {
-      likeCountQuery.refetch();
-      hasLikedQuery.refetch();
-    },
+    onSuccess: () => { likeCountQuery.refetch(); hasLikedQuery.refetch(); },
   });
 
   const createCommentMutation = trpc.comments.create.useMutation({
-    onSuccess: () => {
-      setCommentText("");
-      commentsQuery.refetch();
-      toast.success("Comentário adicionado!");
-    },
-    onError: () => {
-      toast.error("Erro ao adicionar comentário");
-    },
+    onSuccess: () => { setCommentText(""); commentsQuery.refetch(); toast.success("Comentário adicionado!"); },
+    onError: () => toast.error("Erro ao adicionar comentário"),
   });
 
   if (!video) {
@@ -64,35 +47,21 @@ export default function VideoPlayer() {
   }
 
   const handleLike = () => {
-    if (!isAuthenticated) {
-      toast.error("Faça login para curtir");
-      return;
-    }
+    if (!isAuthenticated) { toast.error("Faça login para curtir"); return; }
     toggleLikeMutation.mutate({ videoId });
   };
 
   const handleCommentSubmit = () => {
-    if (!isAuthenticated) {
-      toast.error("Faça login para comentar");
-      return;
-    }
-    if (!commentText.trim()) {
-      toast.error("Escreva um comentário");
-      return;
-    }
+    if (!isAuthenticated) { toast.error("Faça login para comentar"); return; }
+    if (!commentText.trim()) { toast.error("Escreva um comentário"); return; }
     createCommentMutation.mutate({ videoId, content: commentText });
   };
 
   return (
     <div className="min-h-screen bg-slate-900">
-      {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 px-4 py-4">
         <div className="max-w-6xl mx-auto flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-xl font-bold text-white">Frameshift</h1>
@@ -101,16 +70,10 @@ export default function VideoPlayer() {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Video Player */}
           <div className="lg:col-span-2">
-            {/* Video Player Container */}
             <div className="aspect-video bg-black rounded-lg overflow-hidden mb-6">
               {video.videoUrl ? (
-                <video
-                  src={video.videoUrl}
-                  controls
-                  className="w-full h-full"
-                />
+                <video src={video.videoUrl} controls className="w-full h-full" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <p className="text-white">Vídeo não disponível</p>
@@ -118,7 +81,6 @@ export default function VideoPlayer() {
               )}
             </div>
 
-            {/* Video Info */}
             <Card className="bg-slate-800 border-slate-700 mb-6">
               <CardHeader>
                 <CardTitle className="text-white">{video.title}</CardTitle>
@@ -128,13 +90,7 @@ export default function VideoPlayer() {
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">{video.views} visualizações</span>
                   <div className="flex gap-2">
-                    <Button
-                      variant={hasLiked ? "default" : "outline"}
-                      size="sm"
-                      className="gap-2"
-                      onClick={handleLike}
-                      disabled={toggleLikeMutation.isPending}
-                    >
+                    <Button variant={hasLiked ? "default" : "outline"} size="sm" className="gap-2" onClick={handleLike} disabled={toggleLikeMutation.isPending}>
                       <ThumbsUp className="w-4 h-4" />
                       {likeCount}
                     </Button>
@@ -150,35 +106,18 @@ export default function VideoPlayer() {
               </CardContent>
             </Card>
 
-            {/* Comments Section */}
             <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Comentários</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Comentários</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 {isAuthenticated && (
                   <div className="space-y-2 pb-4 border-b border-slate-700">
-                    <Textarea
-                      placeholder="Adicione um comentário..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white"
-                    />
-                    <Button
-                      onClick={handleCommentSubmit}
-                      disabled={createCommentMutation.isPending}
-                      className="w-full"
-                    >
-                      Comentar
-                    </Button>
+                    <Textarea placeholder="Adicione um comentário..." value={commentText} onChange={(e) => setCommentText(e.target.value)} className="bg-slate-700 border-slate-600 text-white" />
+                    <Button onClick={handleCommentSubmit} disabled={createCommentMutation.isPending} className="w-full">Comentar</Button>
                   </div>
                 )}
-
                 <div className="space-y-4">
                   {comments.length === 0 ? (
-                    <p className="text-slate-400 text-center py-4">
-                      Nenhum comentário ainda
-                    </p>
+                    <p className="text-slate-400 text-center py-4">Nenhum comentário ainda</p>
                   ) : (
                     comments.map((comment: any) => (
                       <div key={comment.id} className="border-b border-slate-700 pb-4">
@@ -192,12 +131,9 @@ export default function VideoPlayer() {
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="lg:col-span-1">
             <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white text-sm">Sobre</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white text-sm">Sobre</CardTitle></CardHeader>
               <CardContent className="text-slate-300 text-sm space-y-2">
                 <p>Criador: Usuário #{video.userId}</p>
                 <p>Duração: {video.duration ? `${video.duration}s` : "N/A"}</p>

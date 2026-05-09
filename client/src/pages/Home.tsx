@@ -4,14 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/_core/trpc";
 import { Play, Radio, Upload, LogIn } from "lucide-react";
-import { getLoginUrl } from "@/const";
-import { Link } from "wouter";
-import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { logout } from "@/lib/firebase";
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("feed");
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,7 +23,6 @@ export default function Home() {
     }
   };
 
-  // Fetch videos and live streams
   const videosQuery = trpc.videos.list.useQuery({ limit: 20, offset: 0 });
   const liveStreamsQuery = trpc.liveStreams.list.useQuery({ limit: 20, offset: 0 });
 
@@ -39,8 +38,8 @@ export default function Home() {
             <Radio className="w-8 h-8 text-red-500" />
             <h1 className="text-2xl font-bold text-white">Frameshift</h1>
           </div>
-          
-          <form onSubmit={handleSearch} className="flex-1 max-w-md">
+
+          <form onSubmit={handleSearch} className="flex-1 max-w-md mx-4">
             <Input
               placeholder="Buscar vídeos, transmissões..."
               value={searchQuery}
@@ -48,6 +47,7 @@ export default function Home() {
               className="bg-slate-700 border-slate-600 text-white"
             />
           </form>
+
           <nav className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
@@ -57,19 +57,22 @@ export default function Home() {
                     Upload
                   </Button>
                 </Link>
-                <Link href={`/profile/${user?.id}`}>
-                  <Button variant="ghost">
-                    {user?.name || "Perfil"}
+                <Link href={`/profile/${user?.uid}`}>
+                  <Button variant="ghost" className="text-white">
+                    {user?.displayName || user?.email || "Perfil"}
                   </Button>
                 </Link>
+                <Button variant="ghost" className="text-slate-400 hover:text-white" onClick={() => logout()}>
+                  Sair
+                </Button>
               </>
             ) : (
-              <a href={getLoginUrl()}>
-                <Button className="gap-2">
+              <Link href="/login">
+                <Button className="gap-2 bg-red-500 hover:bg-red-600">
                   <LogIn className="w-4 h-4" />
                   Entrar
                 </Button>
-              </a>
+              </Link>
             )}
           </nav>
         </div>
