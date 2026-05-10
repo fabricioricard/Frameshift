@@ -7,6 +7,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updateProfile as firebaseUpdateProfile,
   type User,
 } from "firebase/auth";
 
@@ -51,4 +52,13 @@ export async function getIdToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (!user) return null;
   return user.getIdToken();
+}
+
+export async function updateUserProfile(displayName?: string, photoURL?: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Usuário não autenticado");
+  await firebaseUpdateProfile(user, {
+    ...(displayName !== undefined && { displayName }),
+    ...(photoURL !== undefined && { photoURL }),
+  });
 }

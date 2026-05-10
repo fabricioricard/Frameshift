@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload as UploadIcon, ArrowLeft, Radio, LogIn } from "lucide-react";
+import { Upload as UploadIcon, Radio, LogIn } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -50,9 +50,7 @@ export default function Upload() {
             <CardTitle className="text-white">Faça login para continuar</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-slate-300 mb-4">
-              Você precisa estar autenticado para fazer upload de conteúdo.
-            </p>
+            <p className="text-slate-300 mb-4">Você precisa estar autenticado para fazer upload de conteúdo.</p>
             <Link href="/login">
               <Button className="w-full gap-2 bg-red-500 hover:bg-red-600">
                 <LogIn className="w-4 h-4" />
@@ -79,23 +77,26 @@ export default function Upload() {
 
   return (
     <div className="min-h-screen bg-slate-900">
+      {/* Header */}
       <header className="bg-slate-800 border-b border-slate-700 px-4 py-4">
         <div className="max-w-6xl mx-auto flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl font-bold text-white">Frameshift</h1>
+          <Link href="/">
+            <div className="flex items-center gap-2 cursor-pointer">
+              <Radio className="w-7 h-7 text-red-500" />
+              <h1 className="text-xl font-bold text-white">Frameshift</h1>
+            </div>
+          </Link>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="video" className="gap-2">
+          <TabsList className="w-full mb-8 bg-slate-800 border border-slate-700 p-1 flex gap-2">
+            <TabsTrigger value="video" className="flex-1 gap-2 data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400">
               <UploadIcon className="w-4 h-4" />
               Upload de Vídeo
             </TabsTrigger>
-            <TabsTrigger value="stream" className="gap-2">
+            <TabsTrigger value="stream" className="flex-1 gap-2 data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400">
               <Radio className="w-4 h-4" />
               Transmissão ao Vivo
             </TabsTrigger>
@@ -118,7 +119,7 @@ export default function Upload() {
                   <Input placeholder="https://exemplo.com/video.mp4" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="bg-slate-700 border-slate-600 text-white" type="url" />
                   <p className="text-xs text-slate-400 mt-2">Forneça uma URL pública para seu vídeo (MP4, WebM, etc.)</p>
                 </div>
-                <Button onClick={handleUploadVideo} disabled={createVideoMutation.isPending} className="w-full gap-2">
+                <Button onClick={handleUploadVideo} disabled={createVideoMutation.isPending} className="w-full gap-2 bg-red-500 hover:bg-red-600 text-white">
                   <UploadIcon className="w-4 h-4" />
                   {createVideoMutation.isPending ? "Enviando..." : "Enviar Vídeo"}
                 </Button>
@@ -143,7 +144,7 @@ export default function Upload() {
                   <Input placeholder="rtmp://exemplo.com/live/stream" value={streamUrl} onChange={(e) => setStreamUrl(e.target.value)} className="bg-slate-700 border-slate-600 text-white" type="url" />
                   <p className="text-xs text-slate-400 mt-2">Forneça uma URL RTMP ou HLS para sua transmissão</p>
                 </div>
-                <Button onClick={handleCreateStream} disabled={createStreamMutation.isPending} className="w-full gap-2">
+                <Button onClick={handleCreateStream} disabled={createStreamMutation.isPending} className="w-full gap-2 bg-red-500 hover:bg-red-600 text-white">
                   <Radio className="w-4 h-4" />
                   {createStreamMutation.isPending ? "Criando..." : "Criar Transmissão"}
                 </Button>

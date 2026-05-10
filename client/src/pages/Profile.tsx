@@ -3,10 +3,10 @@ import { trpc } from "@/_core/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Play, Radio, LogOut, Pencil } from "lucide-react";
+import { Play, Radio, LogOut, Pencil, Check, X } from "lucide-react";
 import { useParams, useLocation, Link } from "wouter";
-import { logout } from "@/lib/firebase";
-import { useState } from "react";
+import { logout, updateUserProfile } from "@/lib/firebase";
+import { useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -17,28 +17,58 @@ export default function Profile() {
 
   const isOwnProfile = !!currentUser && currentUser.uid === id;
 
-  const userId = 0; // Firebase users don't have numeric DB IDs on the profile URL
-  const videosQuery = trpc.videos.getByUserId.useQuery({ userId, limit: 20, offset: 0 }, { enabled: false });
-  const streamsQuery = trpc.liveStreams.getByUserId.useQuery({ userId, limit: 20, offset: 0 }, { enabled: false });
+  const videosQuery = trpc.videos.getByUserId.useQuery({ userId: 0, limit: 20, offset: 0 }, { enabled: false });
+  const streamsQuery = trpc.liveStreams.getByUserId.useQuery({ userId: 0, limit: 20, offset: 0 }, { enabled: false });
   const videos = videosQuery.data || [];
   const streams = streamsQuery.data || [];
 
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(currentUser?.displayName || "");
+  const [savingName, setSavingName] = useState(false);
+  const [photoURL, setPhotoURL] = useState(currentUser?.photoURL || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSaveName = async () => {
+    if (!newName.trim()) { toast.error("Nome não pode ser vazio"); return; }
+    setSavingName(true);
+    try {
+      await updateUserProfile(newName.trim());
+      toast.success("Nome atualizado!");
+      setEditingName(false);
+    } catch {
+      toast.error("Erro ao atualizar nome");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Convert to base64 data URL (no S3 needed)
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target?.result as string;
+      try {
+        await updateUserProfile(undefined, dataUrl);
+        setPhotoURL(dataUrl);
+        toast.success("Foto atualizada!");
+      } catch {
+        toast.error("Erro ao atualizar foto");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate("/");
   };
 
-  const handleSaveName = async () => {
-    // Firebase updateProfile would go here
-    toast.success("Nome atualizado!");
-    setEditingName(false);
-  };
-
   const displayName = currentUser?.displayName || currentUser?.email || "Usuário";
   const initial = (currentUser?.displayName || currentUser?.email || "U").charAt(0).toUpperCase();
+  const avatar = photoURL || currentUser?.photoURL;
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -67,21 +97,38 @@ export default function Profile() {
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Profile Card */}
         <Card className="bg-slate-800 border-slate-700 mb-8">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 pb-6">
             <div className="flex items-center gap-6">
               {/* Avatar */}
-              <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shrink-0">
-                  <span className="text-3xl font-bold text-white">{initial}</span>
+              <div className="relative shrink-0">
+                <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                  {avatar ? (
+                    <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl font-bold text-white">{initial}</span>
+                  )}
                 </div>
                 {isOwnProfile && (
-                  <button className="absolute bottom-0 right-0 bg-slate-600 hover:bg-slate-500 rounded-full p-1.5 border-2 border-slate-800">
-                    <Pencil className="w-3 h-3 text-white" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 bg-red-500 hover:bg-red-400 rounded-full p-1.5 border-2 border-slate-800 transition"
+                      title="Trocar foto"
+                    >
+                      <Pencil className="w-3 h-3 text-white" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoChange}
+                    />
+                  </>
                 )}
               </div>
 
-              {/* Info */}
+              {/* Name + email */}
               <div className="flex-1">
                 {editingName ? (
                   <div className="flex items-center gap-2 mb-2">
@@ -90,25 +137,38 @@ export default function Profile() {
                       onChange={e => setNewName(e.target.value)}
                       className="bg-slate-700 border-slate-600 text-white max-w-xs"
                       placeholder="Seu nome"
+                      onKeyDown={e => e.key === "Enter" && handleSaveName()}
+                      autoFocus
                     />
-                    <Button onClick={handleSaveName} className="bg-red-500 hover:bg-red-600 text-white">Salvar</Button>
-                    <Button onClick={() => setEditingName(false)} className="bg-slate-600 hover:bg-slate-500 text-white">Cancelar</Button>
+                    <Button onClick={handleSaveName} disabled={savingName} className="bg-green-600 hover:bg-green-500 text-white px-3">
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button onClick={() => setEditingName(false)} className="bg-slate-600 hover:bg-slate-500 text-white px-3">
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
                 ) : (
-                  <h2 className="text-2xl font-bold text-white mb-1">{displayName}</h2>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-2xl font-bold text-white">{displayName}</h2>
+                    {isOwnProfile && (
+                      <button onClick={() => { setNewName(currentUser?.displayName || ""); setEditingName(true); }} className="text-slate-400 hover:text-white transition">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 )}
-                <p className="text-slate-400 text-sm mb-4">{currentUser?.email}</p>
-
-                {isOwnProfile && !editingName && (
-                  <Button
-                    onClick={() => setEditingName(true)}
-                    className="gap-2 bg-slate-700 hover:bg-slate-500 text-white border border-slate-500 hover:border-slate-300"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    Editar Perfil
-                  </Button>
-                )}
+                <p className="text-slate-400 text-sm">{currentUser?.email}</p>
               </div>
+
+              {isOwnProfile && (
+                <Button
+                  onClick={handleLogout}
+                  className="gap-2 bg-slate-700 hover:bg-red-600 text-white border border-slate-500 hover:border-red-500 font-medium hidden md:flex"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -131,9 +191,7 @@ export default function Profile() {
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="pt-6 text-center py-12">
                   <Play className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-300">
-                    {isOwnProfile ? "Você não tem vídeos ainda" : "Este usuário não tem vídeos"}
-                  </p>
+                  <p className="text-slate-300">{isOwnProfile ? "Você não tem vídeos ainda" : "Este usuário não tem vídeos"}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -160,9 +218,7 @@ export default function Profile() {
               <Card className="bg-slate-800 border-slate-700">
                 <CardContent className="pt-6 text-center py-12">
                   <Radio className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                  <p className="text-slate-300">
-                    {isOwnProfile ? "Você não tem transmissões ainda" : "Este usuário não tem transmissões"}
-                  </p>
+                  <p className="text-slate-300">{isOwnProfile ? "Você não tem transmissões ainda" : "Este usuário não tem transmissões"}</p>
                 </CardContent>
               </Card>
             ) : (
