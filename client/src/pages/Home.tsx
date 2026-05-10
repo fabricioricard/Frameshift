@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/_core/trpc";
-import { Play, Radio, Upload, LogIn } from "lucide-react";
+import { Play, Radio, Upload, LogIn, LogOut, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -33,44 +33,49 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer">
+            <div className="flex items-center gap-2 cursor-pointer shrink-0">
               <Radio className="w-8 h-8 text-red-500" />
               <h1 className="text-2xl font-bold text-white">Frameshift</h1>
             </div>
           </Link>
 
-          <form onSubmit={handleSearch} className="flex-1 max-w-md mx-4">
+          <form onSubmit={handleSearch} className="flex-1 max-w-md">
             <Input
               placeholder="Buscar vídeos, transmissões..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-slate-700 border-slate-600 text-white"
+              className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400 focus:border-red-500 focus:ring-red-500"
             />
           </form>
 
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-2 shrink-0">
             {isAuthenticated ? (
               <>
                 <Link href="/upload">
-                  <Button variant="outline" className="gap-2">
+                  <Button className="gap-2 bg-slate-700 hover:bg-slate-500 text-white border border-slate-500 hover:border-slate-300">
                     <Upload className="w-4 h-4" />
                     Upload
                   </Button>
                 </Link>
                 <Link href={`/profile/${user?.uid}`}>
-                  <Button variant="ghost" className="text-white">
-                    {user?.displayName || user?.email || "Perfil"}
+                  <Button className="gap-2 bg-slate-700 hover:bg-slate-500 text-white border border-slate-500 hover:border-slate-300">
+                    <User className="w-4 h-4" />
+                    {user?.displayName || user?.email?.split("@")[0] || "Perfil"}
                   </Button>
                 </Link>
-                <Button variant="ghost" className="text-slate-400 hover:text-white" onClick={() => logout()}>
+                <Button
+                  onClick={() => logout()}
+                  className="gap-2 bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white border border-slate-500 hover:border-red-500"
+                >
+                  <LogOut className="w-4 h-4" />
                   Sair
                 </Button>
               </>
             ) : (
               <Link href="/login">
-                <Button className="gap-2 bg-red-500 hover:bg-red-600">
+                <Button className="gap-2 bg-red-500 hover:bg-red-400 text-white font-semibold">
                   <LogIn className="w-4 h-4" />
                   Entrar
                 </Button>
