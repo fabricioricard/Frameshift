@@ -88,12 +88,12 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="feed" className="gap-2">
+          <TabsList className="w-full mb-8 bg-slate-800 border border-slate-700 p-1 flex gap-2">
+            <TabsTrigger value="feed" className="flex-1 gap-2 data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400">
               <Play className="w-4 h-4" />
               Vídeos
             </TabsTrigger>
-            <TabsTrigger value="live" className="gap-2">
+            <TabsTrigger value="live" className="flex-1 gap-2 data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-400">
               <Radio className="w-4 h-4" />
               Ao Vivo
             </TabsTrigger>
