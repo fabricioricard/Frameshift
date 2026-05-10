@@ -5,8 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Radio, LogOut, Pencil, Check, X } from "lucide-react";
 import { useParams, useLocation, Link } from "wouter";
-import { logout, updateUserProfile } from "@/lib/firebase";
-import { useState, useRef } from "react";
+import {
+  logout,
+  updateUserDisplayName,
+  compressImageToBase64,
+  saveAvatarToFirestore,
+  loadUserProfile,
+} from "@/lib/firebase";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -17,22 +23,37 @@ export default function Profile() {
 
   const isOwnProfile = !!currentUser && currentUser.uid === id;
 
-  const videosQuery = trpc.videos.getByUserId.useQuery({ userId: 0, limit: 20, offset: 0 }, { enabled: false });
-  const streamsQuery = trpc.liveStreams.getByUserId.useQuery({ userId: 0, limit: 20, offset: 0 }, { enabled: false });
+  const videosQuery = trpc.videos.getByUserId.useQuery(
+    { userId: 0, limit: 20, offset: 0 },
+    { enabled: false }
+  );
+  const streamsQuery = trpc.liveStreams.getByUserId.useQuery(
+    { userId: 0, limit: 20, offset: 0 },
+    { enabled: false }
+  );
   const videos = videosQuery.data || [];
   const streams = streamsQuery.data || [];
 
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(currentUser?.displayName || "");
   const [savingName, setSavingName] = useState(false);
-  const [photoURL, setPhotoURL] = useState(currentUser?.photoURL || "");
+  const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load avatar from Firestore on mount
+  useEffect(() => {
+    if (!currentUser) return;
+    loadUserProfile(currentUser.uid).then((profile) => {
+      if (profile?.avatar) setAvatarBase64(profile.avatar);
+    }).catch(() => {});
+  }, [currentUser?.uid]);
 
   const handleSaveName = async () => {
     if (!newName.trim()) { toast.error("Nome não pode ser vazio"); return; }
     setSavingName(true);
     try {
-      await updateUserProfile(newName.trim());
+      await updateUserDisplayName(newName.trim());
       toast.success("Nome atualizado!");
       setEditingName(false);
     } catch {
@@ -46,19 +67,28 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Convert to base64 data URL (no S3 needed)
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const dataUrl = ev.target?.result as string;
-      try {
-        await updateUserProfile(undefined, dataUrl);
-        setPhotoURL(dataUrl);
-        toast.success("Foto atualizada!");
-      } catch {
-        toast.error("Erro ao atualizar foto");
-      }
-    };
-    reader.readAsDataURL(file);
+    const validTypes = ["image/png", "image/jpeg", "image/jpg", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Formato inválido. Use PNG, JPG ou WebP.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 2MB.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const base64 = await compressImageToBase64(file);
+      await saveAvatarToFirestore(currentUser!.uid, base64);
+      setAvatarBase64(base64);
+      toast.success("Foto atualizada!");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao atualizar foto");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const handleLogout = async () => {
@@ -68,7 +98,6 @@ export default function Profile() {
 
   const displayName = currentUser?.displayName || currentUser?.email || "Usuário";
   const initial = (currentUser?.displayName || currentUser?.email || "U").charAt(0).toUpperCase();
-  const avatar = photoURL || currentUser?.photoURL;
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -81,7 +110,6 @@ export default function Profile() {
               <h1 className="text-xl font-bold text-white">Frameshift</h1>
             </div>
           </Link>
-
           {isOwnProfile && (
             <Button
               onClick={handleLogout}
@@ -102,8 +130,8 @@ export default function Profile() {
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-                  {avatar ? (
-                    <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
+                  {avatarBase64 ? (
+                    <img src={avatarBase64} alt="avatar" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-3xl font-bold text-white">{initial}</span>
                   )}
@@ -112,7 +140,8 @@ export default function Profile() {
                   <>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 bg-red-500 hover:bg-red-400 rounded-full p-1.5 border-2 border-slate-800 transition"
+                      disabled={uploadingAvatar}
+                      className="absolute bottom-0 right-0 bg-red-500 hover:bg-red-400 disabled:opacity-50 rounded-full p-1.5 border-2 border-slate-800 transition"
                       title="Trocar foto"
                     >
                       <Pencil className="w-3 h-3 text-white" />
@@ -125,6 +154,11 @@ export default function Profile() {
                       onChange={handlePhotoChange}
                     />
                   </>
+                )}
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                    <span className="text-white text-xs">...</span>
+                  </div>
                 )}
               </div>
 
@@ -140,10 +174,17 @@ export default function Profile() {
                       onKeyDown={e => e.key === "Enter" && handleSaveName()}
                       autoFocus
                     />
-                    <Button onClick={handleSaveName} disabled={savingName} className="bg-green-600 hover:bg-green-500 text-white px-3">
+                    <Button
+                      onClick={handleSaveName}
+                      disabled={savingName}
+                      className="bg-green-600 hover:bg-green-500 text-white px-3"
+                    >
                       <Check className="w-4 h-4" />
                     </Button>
-                    <Button onClick={() => setEditingName(false)} className="bg-slate-600 hover:bg-slate-500 text-white px-3">
+                    <Button
+                      onClick={() => setEditingName(false)}
+                      className="bg-slate-600 hover:bg-slate-500 text-white px-3"
+                    >
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
@@ -151,7 +192,10 @@ export default function Profile() {
                   <div className="flex items-center gap-2 mb-1">
                     <h2 className="text-2xl font-bold text-white">{displayName}</h2>
                     {isOwnProfile && (
-                      <button onClick={() => { setNewName(currentUser?.displayName || ""); setEditingName(true); }} className="text-slate-400 hover:text-white transition">
+                      <button
+                        onClick={() => { setNewName(currentUser?.displayName || ""); setEditingName(true); }}
+                        className="text-slate-400 hover:text-white transition"
+                      >
                         <Pencil className="w-4 h-4" />
                       </button>
                     )}
@@ -159,16 +203,6 @@ export default function Profile() {
                 )}
                 <p className="text-slate-400 text-sm">{currentUser?.email}</p>
               </div>
-
-              {isOwnProfile && (
-                <Button
-                  onClick={handleLogout}
-                  className="gap-2 bg-slate-700 hover:bg-red-600 text-white border border-slate-500 hover:border-red-500 font-medium hidden md:flex"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sair
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>
